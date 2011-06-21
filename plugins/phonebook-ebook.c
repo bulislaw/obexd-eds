@@ -324,8 +324,46 @@ done:
 	g_list_free_full(contacts, g_object_unref);
 
 	data->queued_calls--;
-	if (data->queued_calls == 0)
+	if (data->queued_calls == 0) {
+		/* Add 0.vcf */
+		EContact *me;
+		EVCard *evcard;
+		GError *merr;
+		EBook *eb;
+		EVCardAttribute *attrib;
+		char *uid, *tel, *name;
+
+		if (e_book_get_self(&me, &eb, &merr) == FALSE)
+			g_error_free(merr);
+
+		evcard = E_VCARD(me);
+
+		name = evcard_name_attribute_to_string(evcard);
+		if (!name)
+			name = g_strdup("");
+
+		attrib = e_vcard_get_attribute(evcard, EVC_UID);
+		uid = e_vcard_attribute_get_value(attrib);
+		if (!uid)
+			uid = g_strdup("");
+
+		attrib = e_vcard_get_attribute(evcard, EVC_TEL);
+		if (attrib)
+			tel =  e_vcard_attribute_get_value(attrib);
+		else
+			tel = g_strdup("");
+
+		data->entry_cb(uid, 0, name, NULL, tel, data->user_data);
+
+		data->count++;
+
+		g_free(name);
+		g_free(uid);
+		g_free(tel);
+		g_object_unref(eb);
+
 		data->ready_cb(data->user_data);
+	}
 }
 
 int phonebook_init(void)
